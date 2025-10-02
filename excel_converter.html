@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel Data Converter - LOC to Sheet2 Format</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 800px;
+            width: 100%;
+            padding: 40px;
+        }
+
+        h1 {
+            color: #667eea;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 0.9em;
+        }
+
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 15px;
+            padding: 50px 20px;
+            text-align: center;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            background: #f8f9ff;
+        }
+
+        .upload-area:hover {
+            background: #e8ebff;
+            border-color: #764ba2;
+        }
+
+        .upload-area.drag-over {
+            background: #e8ebff;
+            border-color: #764ba2;
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 50px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-block;
+            margin: 10px 5px;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .status {
+            text-align: center;
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 10px;
+            display: none;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .instructions {
+            background: #f8f9ff;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 30px;
+            border-left: 4px solid #667eea;
+        }
+
+        .instructions h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .instructions ul {
+            margin-left: 20px;
+            color: #666;
+        }
+
+        .instructions li {
+            margin: 8px 0;
+        }
+
+        .file-info {
+            text-align: center;
+            margin: 15px 0;
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 Excel Data Converter</h1>
+        <p class="subtitle">Convert LOC format to Sheet2 layout instantly</p>
+
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">📁</div>
+            <p style="font-size: 1.2em; margin-bottom: 10px;">Drop your Excel file here</p>
+            <p style="color: #999;">or click to browse</p>
+            <input type="file" id="fileInput" accept=".xlsx,.xls">
+        </div>
+
+        <div class="file-info" id="fileInfo"></div>
+
+        <div style="text-align: center;">
+            <button class="btn" id="convertBtn" disabled>Convert Data</button>
+            <button class="btn" id="downloadBtn" style="display:none;">Download Converted File</button>
+        </div>
+
+        <div class="status" id="status"></div>
+
+        <div class="instructions">
+            <h3>📋 How it works:</h3>
+            <ul>
+                <li><strong>Upload:</strong> Select an Excel file with LOC codes (e.g., SEPNF10-1, SF8-3)</li>
+                <li><strong>Convert:</strong> The tool extracts base locations and spreads suffix values across columns 1-8</li>
+                <li><strong>Download:</strong> Get a new Excel file with the "Sheet2" format ready to use</li>
+            </ul>
+            <h3 style="margin-top: 15px;">📌 Expected format:</h3>
+            <ul>
+                <li>Column A: LOC codes (with or without dashes)</li>
+                <li>Column B: Total values (numeric)</li>
+                <li>Codes like "SEP/NF/10-1" will become base "SEPNF10" with value in column 1</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        let uploadedFile = null;
+        let convertedWorkbook = null;
+
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const convertBtn = document.getElementById('convertBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const status = document.getElementById('status');
+        const fileInfo = document.getElementById('fileInfo');
+
+        // Click to upload
+        uploadArea.addEventListener('click', () => fileInput.click());
+
+        // Drag and drop
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('drag-over');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('drag-over');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('drag-over');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        function handleFile(file) {
+            if (!file.name.match(/\.xlsx?$/i)) {
+                showStatus('Please upload a valid Excel file (.xlsx or .xls)', 'error');
+                return;
+            }
+
+            uploadedFile = file;
+            fileInfo.textContent = `📄 ${file.name} (${(file.size / 1024).toFixed(2)} KB)`;
+            convertBtn.disabled = false;
+            downloadBtn.style.display = 'none';
+            showStatus('File loaded successfully! Click "Convert Data" to proceed.', 'success');
+        }
+
+        convertBtn.addEventListener('click', convertData);
+        downloadBtn.addEventListener('click', downloadFile);
+
+        async function convertData() {
+            if (!uploadedFile) return;
+
+            showStatus('Converting... <span class="spinner"></span>', 'info');
+            convertBtn.disabled = true;
+
+            try {
+                const data = await readExcelFile(uploadedFile);
+                const converted = processData(data);
+                convertedWorkbook = createExcelFile(converted);
+
+                showStatus('✅ Conversion complete! Click "Download" to save your file.', 'success');
+                downloadBtn.style.display = 'inline-block';
+
+            } catch (error) {
+                showStatus('❌ Error: ' + error.message, 'error');
+                convertBtn.disabled = false;
+            }
+        }
+
+        function readExcelFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+
+                reader.onload = (e) => {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                        const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+                        resolve(jsonData);
+                    } catch (error) {
+                        reject(error);
+                    }
+                };
+
+                reader.onerror = () => reject(new Error('Failed to read file'));
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
+        function processData(rawData) {
+            // Skip empty rows and find header
+            let startRow = 0;
+            for (let i = 0; i < rawData.length; i++) {
+                if (rawData[i][0] === 'Loc' || rawData[i][0] === 'LOC') {
+                    startRow = i + 1;
+                    break;
+                }
+            }
+
+            const dataMap = new Map();
+
+            for (let i = startRow; i < rawData.length; i++) {
+                const row = rawData[i];
+                if (!row[0] || !row[1]) continue;
+
+                const loc = String(row[0]).trim();
+                const total = parseFloat(row[1]);
+
+                if (isNaN(total)) continue;
+
+                // Extract base and suffix
+                const { base, suffix } = extractBaseAndSuffix(loc);
+
+                if (!dataMap.has(base)) {
+                    dataMap.set(base, {});
+                }
+
+                dataMap.get(base)[suffix] = total;
+            }
+
+            // Convert map to array format
+            const result = [['LOC', 1, 2, 3, 4, 5, 6, 7, 8]];
+
+            for (const [base, values] of dataMap) {
+                const row = [base];
+                for (let i = 1; i <= 8; i++) {
+                    row.push(values[i] || '');
+                }
+                result.push(row);
+            }
+
+            return result;
+        }
+
+        function extractBaseAndSuffix(loc) {
+            // Remove spaces
+            loc = loc.replace(/\s+/g, '');
+
+            // Match pattern with dash and number at end
+            const match = loc.match(/^(.+?)-?(\d+)$/);
+
+            if (match) {
+                let base = match[1].replace(/[\/\\]/g, ''); // Remove slashes
+                const suffix = parseInt(match[2]);
+                return { base, suffix };
+            }
+
+            // No suffix found, treat as suffix 1
+            return { base: loc, suffix: 1 };
+        }
+
+        function createExcelFile(data) {
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(data);
+
+            // Set column widths
+            ws['!cols'] = [
+                { wch: 15 }, // LOC column
+                { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 10 },
+                { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 10 }
+            ];
+
+            XLSX.utils.book_append_sheet(wb, ws, 'Converted');
+            return wb;
+        }
+
+        function downloadFile() {
+            if (!convertedWorkbook) return;
+
+            const fileName = uploadedFile.name.replace(/\.xlsx?$/i, '_converted.xlsx');
+            XLSX.writeFile(convertedWorkbook, fileName);
+            showStatus('✅ File downloaded successfully!', 'success');
+        }
+
+        function showStatus(message, type) {
+            status.innerHTML = message;
+            status.className = 'status ' + type;
+            status.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
